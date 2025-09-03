@@ -4283,6 +4283,9 @@ pub const ConnectError = error{
 
     /// Socket is non-blocking and already has a pending connection in progress.
     ConnectionPending,
+
+    /// Socket was already connected
+    AlreadyConnected,
 } || UnexpectedError;
 
 /// Initiate a connection on a socket.
@@ -4303,7 +4306,7 @@ pub fn connect(sock: socket_t, sock_addr: *const sockaddr, len: socklen_t) Conne
             => return error.NetworkUnreachable,
             .WSAEFAULT => unreachable,
             .WSAEINVAL => unreachable,
-            .WSAEISCONN => unreachable,
+            .WSAEISCONN => return error.AlreadyConnected,
             .WSAENOTSOCK => unreachable,
             .WSAEWOULDBLOCK => return error.WouldBlock,
             .WSAEACCES => unreachable,
@@ -4329,7 +4332,7 @@ pub fn connect(sock: socket_t, sock_addr: *const sockaddr, len: socklen_t) Conne
             .CONNRESET => return error.ConnectionResetByPeer,
             .FAULT => unreachable, // The socket structure address is outside the user's address space.
             .INTR => continue,
-            .ISCONN => unreachable, // The socket is already connected.
+            .ISCONN => return error.AlreadyConnected, // The socket is already connected.
             .HOSTUNREACH => return error.NetworkUnreachable,
             .NETUNREACH => return error.NetworkUnreachable,
             .NOTSOCK => unreachable, // The file descriptor sockfd does not refer to a socket.
@@ -4389,7 +4392,7 @@ pub fn getsockoptError(sockfd: fd_t) ConnectError!void {
             .BADF => unreachable, // sockfd is not a valid open file descriptor.
             .CONNREFUSED => return error.ConnectionRefused,
             .FAULT => unreachable, // The socket structure address is outside the user's address space.
-            .ISCONN => unreachable, // The socket is already connected.
+            .ISCONN => return error.AlreadyConnected, // The socket is already connected.
             .HOSTUNREACH => return error.NetworkUnreachable,
             .NETUNREACH => return error.NetworkUnreachable,
             .NOTSOCK => unreachable, // The file descriptor sockfd does not refer to a socket.
