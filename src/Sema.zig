@@ -16046,7 +16046,6 @@ fn splat(sema: *Sema, ty: Type, val: Value) !Value {
 fn analyzeArithmetic(
     sema: *Sema,
     block: *Block,
-    /// TODO performance investigation: make this comptime?
     zir_tag: Zir.Inst.Tag,
     lhs: Air.Inst.Ref,
     rhs: Air.Inst.Ref,
@@ -16244,6 +16243,11 @@ fn analyzePtrArithmetic(
     const ptr_ty = sema.typeOf(ptr);
     const ptr_info = ptr_ty.ptrInfo(zcu);
     assert(ptr_info.flags.size == .many or ptr_info.flags.size == .c);
+
+    if ((try sema.typeHasOnePossibleValue(.fromInterned(ptr_info.child))) != null) {
+        // Offset will be multiplied by zero, so result is the same as the base pointer.
+        return ptr;
+    }
 
     const new_ptr_ty = t: {
         // Calculate the new pointer alignment.
