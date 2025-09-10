@@ -187009,7 +187009,13 @@ const Temp = struct {
                 },
                 .struct_type => {
                     assert(src_regs.len - part_index == std.math.divCeil(u32, src_abi_size, 8) catch unreachable);
-                    break :part_ty .u64;
+                    break :part_ty switch (src_abi_size) {
+                        0, 3, 5...7 => unreachable,
+                        1 => .u8,
+                        2 => .u16,
+                        4 => .u32,
+                        else => .u64,
+                    };
                 },
                 .tuple_type => |tuple_type| {
                     assert(tuple_type.types.len == src_regs.len);
@@ -187018,10 +187024,6 @@ const Temp = struct {
             };
             const part_size: u31 = @intCast(part_ty.abiSize(zcu));
             const src_rc = src_reg.class();
-            const part_bit_size = switch (src_rc) {
-                else => 8 * part_size,
-                .x87 => part_ty.bitSize(zcu),
-            };
             if (src_rc == .x87 or std.math.isPowerOfTwo(part_size)) {
                 // hack around linker relocation bugs
                 switch (ptr.tracking(cg).short) {
@@ -187030,7 +187032,15 @@ const Temp = struct {
                 }
                 const strat = try cg.moveStrategy(part_ty, src_rc, false);
                 try strat.write(cg, try ptr.tracking(cg).short.deref().mem(cg, .{
-                    .size = .fromBitSize(part_bit_size),
+                    .size = switch (src_rc) {
+                        else => .fromBitSize(8 * part_size),
+                        .x87 => switch (abi.classifySystemV(src_ty, zcu, cg.target, .other)[part_index]) {
+                            else => unreachable,
+                            .float => .dword,
+                            .float_combine, .sse => .qword,
+                            .x87 => .tbyte,
+                        },
+                    },
                     .disp = part_disp,
                 }), registerAlias(src_reg, part_size));
             } else {
