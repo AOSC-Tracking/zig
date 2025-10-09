@@ -199,26 +199,11 @@ pub const Flock = extern struct {
     pid: pid_t,
 };
 
-// TODO: not 100% sure of padding for msghdr
-pub const msghdr = extern struct {
-    name: ?*sockaddr,
-    namelen: socklen_t,
-    iov: [*]iovec,
-    iovlen: i32,
-    control: ?*anyopaque,
-    controllen: socklen_t,
-    flags: i32,
-};
+/// See c8efebcf53b2 (std.os.linux: remove dead/wrong msghdr definitions in some arch bits, 2025-10-09)
+pub const msghdr = @compileError("incorrect implementation removed");
 
-pub const msghdr_const = extern struct {
-    name: ?*const sockaddr,
-    namelen: socklen_t,
-    iov: [*]const iovec_const,
-    iovlen: i32,
-    control: ?*const anyopaque,
-    controllen: socklen_t,
-    flags: i32,
-};
+/// See c8efebcf53b2 (std.os.linux: remove dead/wrong msghdr definitions in some arch bits, 2025-10-09)
+pub const msghdr_const = @compileError("incorrect implementation removed");
 
 pub const Stat = extern struct {
     dev: dev_t,

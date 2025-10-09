@@ -199,29 +199,11 @@ pub const Flock = extern struct {
     pid: pid_t,
 };
 
-pub const msghdr = extern struct {
-    name: ?*sockaddr,
-    namelen: socklen_t,
-    iov: [*]iovec,
-    __pad1: i32 = 0,
-    iovlen: i32,
-    control: ?*anyopaque,
-    __pad2: i32 = 0,
-    controllen: socklen_t,
-    flags: i32,
-};
+/// See c8efebcf53b2 (std.os.linux: remove dead/wrong msghdr definitions in some arch bits, 2025-10-09)
+pub const msghdr = @compileError("incorrect implementation removed");
 
-pub const msghdr_const = extern struct {
-    name: ?*const sockaddr,
-    namelen: socklen_t,
-    iov: [*]const iovec_const,
-    __pad1: i32 = 0,
-    iovlen: i32,
-    control: ?*const anyopaque,
-    __pad2: i32 = 0,
-    controllen: socklen_t,
-    flags: i32,
-};
+/// See c8efebcf53b2 (std.os.linux: remove dead/wrong msghdr definitions in some arch bits, 2025-10-09)
+pub const msghdr_const = @compileError("incorrect implementation removed");
 
 // The `stat` definition used by the Linux kernel.
 pub const Stat = extern struct {
