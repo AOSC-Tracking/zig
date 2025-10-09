@@ -848,7 +848,7 @@ pub const StackIterator = struct {
     }
 
     // Offset of the saved BP wrt the frame pointer.
-    const fp_offset = if (native_arch.isRISCV())
+    const fp_offset = if (native_arch.isLoongArch() or native_arch.isRISCV())
         // On RISC-V the frame pointer points to the top of the saved register
         // area, on pretty much every other architecture it points to the stack
         // slot where the previous frame pointer is saved.
