@@ -277,11 +277,7 @@ pub fn build(b: *std.Build) !void {
                 const commit_height = it.next().?;
                 const commit_id = it.next().?;
 
-                const ancestor_ver = try std.SemanticVersion.parse(tagged_ancestor);
-                if (zig_version.order(ancestor_ver) != .gt) {
-                    std.debug.print("Zig version '{f}' must be greater than tagged ancestor '{f}'\n", .{ zig_version, ancestor_ver });
-                    std.process.exit(1);
-                }
+                _ = tagged_ancestor;
 
                 // Check that the commit hash is prefixed with a 'g' (a Git convention).
                 if (commit_id.len < 1 or commit_id[0] != 'g') {
@@ -290,7 +286,7 @@ pub fn build(b: *std.Build) !void {
                 }
 
                 // The version is reformatted in accordance with the https://semver.org specification.
-                break :v b.fmt("{s}-dev.{s}+{s}", .{ version_string, commit_height, commit_id[1..] });
+                break :v b.fmt("{s}+aosc.{s}", .{ version_string, commit_height });
             },
             else => {
                 std.debug.print("Unexpected `git describe` output: {s}\n", .{git_describe});
