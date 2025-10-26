@@ -181714,7 +181714,14 @@ fn genSetMem(
         .reg => |base_reg| .{ .register_offset = .{ .reg = base_reg, .off = disp } },
         .frame => |base_frame_index| .{ .lea_frame = .{ .index = base_frame_index, .off = disp } },
         .table, .rip_inst, .lazy_sym => unreachable,
-        .nav => |nav| .{ .lea_nav = nav },
+        .nav => |nav| {
+            // hack around linker relocation bugs
+            const addr_reg = try self.copyToTmpRegister(.usize, .{ .lea_nav = nav });
+            const addr_lock = self.register_manager.lockRegAssumeUnused(addr_reg);
+            defer self.register_manager.unlockReg(addr_lock);
+
+            return self.genSetMem(.{ .reg = addr_reg }, disp, ty, src_mcv, opts);
+        },
         .uav => |uav| .{ .lea_uav = uav },
         .extern_func => |extern_func| .{ .lea_extern_func = extern_func },
     };
