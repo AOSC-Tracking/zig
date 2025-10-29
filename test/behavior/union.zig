@@ -204,7 +204,6 @@ const Payload = union(Letter) {
 };
 
 test "union with specified enum tag" {
-    if (builtin.zig_backend == .stage2_aarch64) return error.SkipZigTest;
     if (builtin.zig_backend == .stage2_arm) return error.SkipZigTest;
     if (builtin.zig_backend == .stage2_sparc64) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_riscv64) return error.SkipZigTest;
@@ -215,7 +214,6 @@ test "union with specified enum tag" {
 }
 
 test "packed union generates correctly aligned type" {
-    if (builtin.zig_backend == .stage2_aarch64) return error.SkipZigTest;
     if (builtin.zig_backend == .stage2_arm) return error.SkipZigTest;
     if (builtin.zig_backend == .stage2_sparc64) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_spirv) return error.SkipZigTest;
@@ -601,7 +599,6 @@ fn returnAnInt(x: i32) TaggedFoo {
 }
 
 test "tagged union with all void fields but a meaningful tag" {
-    if (builtin.zig_backend == .stage2_aarch64) return error.SkipZigTest;
     if (builtin.zig_backend == .stage2_arm) return error.SkipZigTest;
     if (builtin.zig_backend == .stage2_sparc64) return error.SkipZigTest; // TODO
 
@@ -1028,7 +1025,6 @@ test "containers with single-field enums" {
 }
 
 test "@unionInit on union with tag but no fields" {
-    if (builtin.zig_backend == .stage2_aarch64) return error.SkipZigTest;
     if (builtin.zig_backend == .stage2_arm) return error.SkipZigTest; // TODO
     if (builtin.zig_backend == .stage2_sparc64) return error.SkipZigTest; // TODO
 
@@ -1462,8 +1458,6 @@ test "access the tag of a global tagged union" {
 }
 
 test "coerce enum literal to union in result loc" {
-    if (builtin.zig_backend == .stage2_aarch64) return error.SkipZigTest;
-
     const U = union(enum) {
         a,
         b: u8,
