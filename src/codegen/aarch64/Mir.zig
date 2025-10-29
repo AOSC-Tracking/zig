@@ -108,6 +108,7 @@ pub fn emit(
         mir.body[nav_reloc.reloc.label],
         body_end - Instruction.size * (1 + nav_reloc.reloc.label),
         nav_reloc.reloc.addend,
+        if (ip.getNav(nav_reloc.nav).getExtern(ip)) |_| .got_load else .direct,
     );
     for (mir.uav_relocs) |uav_reloc| try emitReloc(
         lf,
@@ -125,6 +126,7 @@ pub fn emit(
         mir.body[uav_reloc.reloc.label],
         body_end - Instruction.size * (1 + uav_reloc.reloc.label),
         uav_reloc.reloc.addend,
+        .direct,
     );
     for (mir.lazy_relocs) |lazy_reloc| try emitReloc(
         lf,
@@ -146,6 +148,7 @@ pub fn emit(
         mir.body[lazy_reloc.reloc.label],
         body_end - Instruction.size * (1 + lazy_reloc.reloc.label),
         lazy_reloc.reloc.addend,
+        .direct,
     );
     for (mir.global_relocs) |global_reloc| try emitReloc(
         lf,
@@ -162,6 +165,7 @@ pub fn emit(
         mir.body[global_reloc.reloc.label],
         body_end - Instruction.size * (1 + global_reloc.reloc.label),
         global_reloc.reloc.addend,
+        .direct,
     );
     const literal_reloc_offset: i19 = @intCast(mir.epilogue.len + literals_align_gap);
     for (mir.literal_relocs) |literal_reloc| {
@@ -196,6 +200,7 @@ fn emitReloc(
     instruction: Instruction,
     offset: u32,
     addend: u64,
+    kind: enum { direct, got_load },
 ) !void {
     const gpa = zcu.gpa;
     switch (instruction.decode()) {
@@ -206,11 +211,20 @@ fn emitReloc(
             const r_type: std.elf.R_AARCH64 = switch (decoded.decode()) {
                 else => unreachable,
                 .pc_relative_addressing => |pc_relative_addressing| switch (pc_relative_addressing.group.op) {
-                    .adr => .ADR_PREL_LO21,
-                    .adrp => .ADR_PREL_PG_HI21,
+                    .adr => switch (kind) {
+                        .direct => .ADR_PREL_LO21,
+                        .got_load => unreachable,
+                    },
+                    .adrp => switch (kind) {
+                        .direct => .ADR_PREL_PG_HI21,
+                        .got_load => .ADR_GOT_PAGE,
+                    },
                 },
                 .add_subtract_immediate => |add_subtract_immediate| switch (add_subtract_immediate.group.op) {
-                    .add => .ADD_ABS_LO12_NC,
+                    .add => switch (kind) {
+                        .direct => .ADD_ABS_LO12_NC,
+                        .got_load => unreachable,
+                    },
                     .sub => unreachable,
                 },
             };
@@ -231,7 +245,10 @@ fn emitReloc(
                         .offset = offset,
                         .target = sym_index,
                         .addend = @bitCast(addend),
-                        .type = .page,
+                        .type = switch (kind) {
+                            .direct => .page,
+                            .got_load => .got_load_page,
+                        },
                         .meta = .{
                             .pcrel = true,
                             .has_subtractor = false,
@@ -246,7 +263,10 @@ fn emitReloc(
                         .offset = offset,
                         .target = sym_index,
                         .addend = @bitCast(addend),
-                        .type = .pageoff,
+                        .type = switch (kind) {
+                            .direct => .pageoff,
+                            .got_load => .got_load_pageoff,
+                        },
                         .meta = .{
                             .pcrel = false,
                             .has_subtractor = false,
@@ -293,20 +313,39 @@ fn emitReloc(
             const r_type: std.elf.R_AARCH64 = switch (decoded.decode().register_unsigned_immediate.decode()) {
                 .integer => |integer| switch (integer.decode()) {
                     .unallocated, .prfm => unreachable,
-                    .strb, .ldrb, .ldrsb => .LDST8_ABS_LO12_NC,
-                    .strh, .ldrh, .ldrsh => .LDST16_ABS_LO12_NC,
-                    .ldrsw => .LDST32_ABS_LO12_NC,
-                    inline .str, .ldr => |encoded| switch (encoded.sf) {
+                    .strb, .ldrb, .ldrsb => switch (kind) {
+                        .direct => .LDST8_ABS_LO12_NC,
+                        .got_load => unreachable,
+                    },
+                    .strh, .ldrh, .ldrsh => switch (kind) {
+                        .direct => .LDST16_ABS_LO12_NC,
+                        .got_load => unreachable,
+                    },
+                    .ldrsw => switch (kind) {
+                        .direct => .LDST32_ABS_LO12_NC,
+                        .got_load => unreachable,
+                    },
+                    inline .str, .ldr => |encoded, mnemonic| switch (encoded.sf) {
                         .word => .LDST32_ABS_LO12_NC,
-                        .doubleword => .LDST64_ABS_LO12_NC,
+                        .doubleword => switch (kind) {
+                            .direct => .LDST64_ABS_LO12_NC,
+                            .got_load => switch (mnemonic) {
+                                else => comptime unreachable,
+                                .str => unreachable,
+                                .ldr => .LD64_GOT_LO12_NC,
+                            },
+                        },
                     },
                 },
-                .vector => |vector| switch (vector.group.opc1.decode(vector.group.size)) {
-                    .byte => .LDST8_ABS_LO12_NC,
-                    .half => .LDST16_ABS_LO12_NC,
-                    .single => .LDST32_ABS_LO12_NC,
-                    .double => .LDST64_ABS_LO12_NC,
-                    .quad => .LDST128_ABS_LO12_NC,
+                .vector => |vector| switch (kind) {
+                    .direct => switch (vector.group.opc1.decode(vector.group.size)) {
+                        .byte => .LDST8_ABS_LO12_NC,
+                        .half => .LDST16_ABS_LO12_NC,
+                        .single => .LDST32_ABS_LO12_NC,
+                        .double => .LDST64_ABS_LO12_NC,
+                        .quad => .LDST128_ABS_LO12_NC,
+                    },
+                    .got_load => unreachable,
                 },
             };
             try atom.addReloc(gpa, .{
@@ -322,7 +361,10 @@ fn emitReloc(
                 .offset = offset,
                 .target = sym_index,
                 .addend = @bitCast(addend),
-                .type = .pageoff,
+                .type = switch (kind) {
+                    .direct => .pageoff,
+                    .got_load => .got_load_pageoff,
+                },
                 .meta = .{
                     .pcrel = false,
                     .has_subtractor = false,
