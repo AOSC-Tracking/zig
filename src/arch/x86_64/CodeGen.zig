@@ -186989,6 +186989,10 @@ const Temp = struct {
                     assert(src_regs.len - part_index == std.math.divCeil(u32, src_abi_size, 8) catch unreachable);
                     break :part_ty try cg.pt.intType(.unsigned, @as(u16, 8) * @min(src_abi_size, 8));
                 },
+                .vector_type => |vector_type| try cg.pt.vectorType(.{
+                    .len = @intCast(@divExact(vector_type.len, src_regs.len)),
+                    .child = vector_type.child,
+                }),
                 .opt_type => |opt_child| switch (ip.indexToKey(opt_child)) {
                     else => std.debug.panic("{s}: {f}\n", .{ @src().fn_name, src_ty.fmt(cg.pt) }),
                     .ptr_type => |ptr_info| {
