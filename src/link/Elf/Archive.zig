@@ -120,7 +120,6 @@ pub fn setArHdr(opts: struct {
         .ar_fmag = undefined,
     };
     @memset(mem.asBytes(&hdr), 0x20);
-    @memcpy(&hdr.ar_fmag, elf.ARFMAG);
 
     {
         var stream = std.io.fixedBufferStream(&hdr.ar_name);
@@ -132,10 +131,15 @@ pub fn setArHdr(opts: struct {
             .name_off => |x| writer.print("/{d}", .{x}) catch unreachable,
         }
     }
+    hdr.ar_date[0] = '0';
+    hdr.ar_uid[0] = '0';
+    hdr.ar_gid[0] = '0';
+    hdr.ar_mode[0] = '0';
     {
         var stream = std.io.fixedBufferStream(&hdr.ar_size);
         stream.writer().print("{d}", .{opts.size}) catch unreachable;
     }
+    hdr.ar_fmag = elf.ARFMAG.*;
 
     return hdr;
 }
