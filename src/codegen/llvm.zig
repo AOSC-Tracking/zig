@@ -11805,7 +11805,7 @@ pub const FuncGen = struct {
                 \\ rolq  $$61, %rdi ; rolq $$51, %rdi
                 \\ xchgq %rbx, %rbx
                 ,
-                .constraints = "={rdx},{rax},{edx},~{cc},~{memory}",
+                .constraints = "={rdx},{rax},{rdx},~{cc},~{memory}",
             },
             else => unreachable,
         };
