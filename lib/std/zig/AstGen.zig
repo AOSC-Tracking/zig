@@ -2108,10 +2108,10 @@ fn comptimeExprAst(
     node: Ast.Node.Index,
 ) InnerError!Zir.Inst.Ref {
     const astgen = gz.astgen;
-    if (gz.is_comptime) {
-        try astgen.appendErrorNode(node, "redundant comptime keyword in already comptime scope", .{});
-    }
     const tree = astgen.tree;
+    if (gz.is_comptime) {
+        try astgen.appendErrorTok(tree.nodeMainToken(node), "redundant comptime keyword in already comptime scope", .{});
+    }
     const body_node = tree.nodeData(node).node;
     return comptimeExpr2(gz, scope, ri, body_node, node, .comptime_keyword);
 }
@@ -3460,7 +3460,7 @@ fn assignDestructure(gz: *GenZir, scope: *Scope, node: Ast.Node.Index) InnerErro
 
     const full = tree.assignDestructure(node);
     if (full.comptime_token != null and gz.is_comptime) {
-        return astgen.appendErrorNode(node, "redundant comptime keyword in already comptime scope", .{});
+        return astgen.appendErrorTok(full.comptime_token.?, "redundant comptime keyword in already comptime scope", .{});
     }
 
     // If this expression is marked comptime, we must wrap the whole thing in a comptime block.
@@ -3516,7 +3516,7 @@ fn assignDestructureMaybeDecls(
 
     const full = tree.assignDestructure(node);
     if (full.comptime_token != null and gz.is_comptime) {
-        try astgen.appendErrorNode(node, "redundant comptime keyword in already comptime scope", .{});
+        try astgen.appendErrorTok(full.comptime_token.?, "redundant comptime keyword in already comptime scope", .{});
     }
 
     const is_comptime = full.comptime_token != null or gz.is_comptime;
