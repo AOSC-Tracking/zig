@@ -185452,6 +185452,9 @@ fn resolveCallingConventionValues(
                     else => unreachable,
                 }
 
+                const save_param_gpr_index = param_gpr_index;
+                const save_param_sse_index = param_gpr_index;
+
                 var arg_mcv: [4]MCValue = undefined;
                 var arg_mcv_len: u32 = 0;
 
@@ -185550,6 +185553,9 @@ fn resolveCallingConventionValues(
                     };
                     continue;
                 }
+
+                param_gpr_index = save_param_gpr_index;
+                param_sse_index = save_param_sse_index;
 
                 const param_align = ty.abiAlignment(zcu).max(.@"8");
                 result.stack_byte_count = @intCast(param_align.forward(result.stack_byte_count));
