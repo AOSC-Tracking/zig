@@ -602,6 +602,7 @@ pub const CaseTestOptions = struct {
     test_filters: []const []const u8,
     test_target_filters: []const []const u8,
     skip_compile_errors: bool,
+    skip_native: bool,
     skip_non_native: bool,
     skip_freebsd: bool,
     skip_netbsd: bool,
@@ -630,6 +631,8 @@ pub fn lowerToBuildSteps(
         if (case.case.? == .Error and options.skip_compile_errors) continue;
 
         if (options.skip_non_native and !case.target.query.isNative())
+            continue;
+        if (options.skip_native and case.target.query.isNative())
             continue;
 
         if (options.skip_freebsd and case.target.query.os_tag == .freebsd) continue;
