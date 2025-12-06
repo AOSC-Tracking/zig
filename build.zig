@@ -86,6 +86,7 @@ pub fn build(b: *std.Build) !void {
     const skip_release_small = b.option(bool, "skip-release-small", "Main test suite skips release-small builds") orelse skip_release;
     const skip_release_fast = b.option(bool, "skip-release-fast", "Main test suite skips release-fast builds") orelse skip_release;
     const skip_release_safe = b.option(bool, "skip-release-safe", "Main test suite skips release-safe builds") orelse skip_release;
+    const skip_native = b.option(bool, "skip-native", "Main test suite skips native builds") orelse false;
     const skip_non_native = b.option(bool, "skip-non-native", "Main test suite skips non-native builds") orelse false;
     const skip_libc = b.option(bool, "skip-libc", "Main test suite skips tests that link libc") orelse false;
     const skip_single_threaded = b.option(bool, "skip-single-threaded", "Main test suite skips tests that are single-threaded") orelse false;
@@ -222,6 +223,7 @@ pub fn build(b: *std.Build) !void {
     exe.root_module.addOptions("build_options", exe_options);
 
     exe_options.addOption(u32, "mem_leak_frames", mem_leak_frames);
+    exe_options.addOption(bool, "skip_native", skip_native);
     exe_options.addOption(bool, "skip_non_native", skip_non_native);
     exe_options.addOption(bool, "have_llvm", enable_llvm);
     exe_options.addOption(bool, "llvm_has_m68k", llvm_has_m68k);
@@ -419,6 +421,7 @@ pub fn build(b: *std.Build) !void {
         .test_filters = test_filters,
         .test_target_filters = test_target_filters,
         .skip_compile_errors = skip_compile_errors,
+        .skip_native = skip_native,
         .skip_non_native = skip_non_native,
         .skip_freebsd = skip_freebsd,
         .skip_netbsd = skip_netbsd,
@@ -452,6 +455,7 @@ pub fn build(b: *std.Build) !void {
         .optimize_modes = optimization_modes,
         .include_paths = &.{},
         .skip_single_threaded = skip_single_threaded,
+        .skip_native = skip_native,
         .skip_non_native = skip_non_native,
         .skip_freebsd = skip_freebsd,
         .skip_netbsd = skip_netbsd,
@@ -474,6 +478,7 @@ pub fn build(b: *std.Build) !void {
         .optimize_modes = optimization_modes,
         .include_paths = &.{"test/c_import"},
         .skip_single_threaded = true,
+        .skip_native = skip_native,
         .skip_non_native = skip_non_native,
         .skip_freebsd = skip_freebsd,
         .skip_netbsd = skip_netbsd,
@@ -494,6 +499,7 @@ pub fn build(b: *std.Build) !void {
         .optimize_modes = optimization_modes,
         .include_paths = &.{},
         .skip_single_threaded = true,
+        .skip_native = skip_native,
         .skip_non_native = skip_non_native,
         .skip_freebsd = skip_freebsd,
         .skip_netbsd = skip_netbsd,
@@ -515,6 +521,7 @@ pub fn build(b: *std.Build) !void {
         .optimize_modes = optimization_modes,
         .include_paths = &.{},
         .skip_single_threaded = true,
+        .skip_native = skip_native,
         .skip_non_native = skip_non_native,
         .skip_freebsd = skip_freebsd,
         .skip_netbsd = skip_netbsd,
@@ -536,6 +543,7 @@ pub fn build(b: *std.Build) !void {
         .optimize_modes = optimization_modes,
         .include_paths = &.{},
         .skip_single_threaded = skip_single_threaded,
+        .skip_native = skip_native,
         .skip_non_native = skip_non_native,
         .skip_freebsd = skip_freebsd,
         .skip_netbsd = skip_netbsd,
@@ -578,6 +586,7 @@ pub fn build(b: *std.Build) !void {
     ));
     test_step.dependOn(tests.addCAbiTests(b, .{
         .test_target_filters = test_target_filters,
+        .skip_native = skip_native,
         .skip_non_native = skip_non_native,
         .skip_freebsd = skip_freebsd,
         .skip_netbsd = skip_netbsd,
