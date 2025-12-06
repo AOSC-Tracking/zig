@@ -219,4 +219,7 @@ pub const cpu = struct {
             .ual,
         }),
     };
+
+    /// Deprecated; for compatibility only.
+    pub const loongarch64 = la64v1_0;
 };
