@@ -21,11 +21,7 @@ pub fn detectNativeCpuAndFeatures(
 
     var cpu: std.Target.Cpu = .{
         .arch = arch,
-        .model = switch (cpucfg(0) & 0xf000) {
-            else => return null,
-            0xc000 => &std.Target.loongarch.cpu.la464,
-            0xd000 => &std.Target.loongarch.cpu.la664,
-        },
+        .model = .generic(arch),
         .features = .empty,
     };
 
