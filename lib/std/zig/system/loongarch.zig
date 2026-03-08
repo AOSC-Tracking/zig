@@ -1,6 +1,9 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
+const host_has_hwcap = builtin.os.tag == .linux;
+const HWCAP = if (host_has_hwcap) std.os.linux.HWCAP else undefined;
+
 inline fn bit(input: u32, offset: u5) bool {
     return (input >> offset) & 1 != 0;
 }
@@ -27,19 +30,25 @@ pub fn detectNativeCpuAndFeatures(
 
     cpu.features.addFeatureSet(cpu.model.features);
 
-    const cfg1 = cpucfg(1);
-    const cfg2 = cpucfg(2);
-    const cfg3 = cpucfg(3);
+    const hwcap_bits: usize = if (host_has_hwcap) std.os.linux.getauxval(std.elf.AT_HWCAP) else 0;
+    // CPUCFG is not available in LA32R, although LA32R is not a real thing yet.
+    const has_cpucfg = if (host_has_hwcap)
+        (hwcap_bits & HWCAP.CPUCFG) != 0
+    else
+        builtin.cpu.has(.loongarch, .@"64bit");
 
-    setFeature(&cpu, .ual, bit(cfg1, 20));
+    setFeature(&cpu, .ual, (hwcap_bits & HWCAP.UAL) != 0);
 
-    const has_fpu = bit(cfg2, 0);
+    const cfg2 = if (has_cpucfg) cpucfg(2) else 0;
+    const cfg3 = if (has_cpucfg) cpucfg(3) else 0;
+
+    const has_fpu = (hwcap_bits & HWCAP.FPU) != 0;
     setFeature(&cpu, .f, has_fpu and bit(cfg2, 1));
     setFeature(&cpu, .d, has_fpu and bit(cfg2, 2));
 
-    setFeature(&cpu, .lsx, bit(cfg2, 6));
-    setFeature(&cpu, .lasx, bit(cfg2, 7));
-    setFeature(&cpu, .lvz, bit(cfg2, 10));
+    setFeature(&cpu, .lsx, (hwcap_bits & HWCAP.LSX) != 0);
+    setFeature(&cpu, .lasx, (hwcap_bits & HWCAP.LASX) != 0);
+    setFeature(&cpu, .lvz, (hwcap_bits & HWCAP.LVZ) != 0);
 
     setFeature(&cpu, .lbt, bit(cfg2, 18) and bit(cfg2, 19) and bit(cfg2, 20));
 
