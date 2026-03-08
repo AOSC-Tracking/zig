@@ -110,6 +110,7 @@ pub fn build(b: *std.Build) !void {
 
     const static_llvm = b.option(bool, "static-llvm", "Disable integration with system-installed LLVM, Clang, LLD, and libc++") orelse false;
     const enable_llvm = b.option(bool, "enable-llvm", "Build self-hosted compiler with LLVM backend enabled") orelse static_llvm;
+    const search_prefix = b.option([][]const u8, "search-prefix", "AOSC: Add custom search prefix") orelse &.{};
     const llvm_has_m68k = b.option(
         bool,
         "llvm-has-m68k",
@@ -310,6 +311,11 @@ pub fn build(b: *std.Build) !void {
     };
     const version = try b.allocator.dupeZ(u8, version_slice);
     exe_options.addOption([:0]const u8, "version", version);
+
+    for (search_prefix) |path| {
+        exe.root_module.addLibraryPath(.{ .cwd_relative = path });
+        exe.root_module.addSystemIncludePath(.{ .cwd_relative = path });
+    }
 
     if (enable_llvm) {
         const cmake_cfg = if (static_llvm) null else blk: {
