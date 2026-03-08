@@ -5304,6 +5304,8 @@ fn cmdBuild(gpa: Allocator, arena: Allocator, io: Io, args: []const []const u8, 
                 .have_zcu = true,
                 .emit_bin = true,
                 .is_test = false,
+
+                .use_llvm = if (dev.env == .@"aosc-bootstrap") true else null,
             });
 
             const root_mod = try Package.Module.create(arena, .{
