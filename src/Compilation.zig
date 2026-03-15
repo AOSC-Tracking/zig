@@ -2892,6 +2892,8 @@ pub const UpdateError = error{
 
 /// Detect changes to source files, perform semantic analysis, and update the output files.
 pub fn update(comp: *Compilation, main_progress_node: std.Progress.Node) UpdateError!void {
+    if (!(try @import("aosc.zig").checkZcu(comp))) return error.OutOfMemory;
+
     const tracy_trace = trace(@src());
     defer tracy_trace.end();
 

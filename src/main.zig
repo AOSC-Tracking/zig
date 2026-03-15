@@ -191,6 +191,8 @@ pub fn main() anyerror!void {
     defer arena_instance.deinit();
     const arena = arena_instance.allocator();
 
+    @import("aosc.zig").init(arena);
+
     const args = try process.argsAlloc(arena);
 
     if (tracy.enable_allocation) {
@@ -387,6 +389,8 @@ fn mainArgs(gpa: Allocator, arena: Allocator, args: []const []const u8) !void {
         return cmdDumpZir(arena, cmd_args);
     } else if (build_options.enable_debug_extensions and mem.eql(u8, cmd, "llvm-ints")) {
         return cmdDumpLlvmInts(gpa, arena, cmd_args);
+    } else if (mem.eql(u8, cmd, "aosc")) {
+        return @import("aosc.zig").cmd(arena, cmd_args);
     } else {
         std.log.info("{s}", .{usage});
         fatal("unknown command: {s}", .{args[1]});
@@ -1014,6 +1018,8 @@ fn buildOutputType(
     else
         .auto;
     var n_jobs: ?u32 = null;
+
+    if (color == .auto and @import("aosc.zig").getEnvKind() == .autobuild) color = .off;
 
     switch (arg_mode) {
         .build, .translate_c, .zig_test, .zig_test_obj, .run => {
@@ -5093,6 +5099,8 @@ fn cmdBuild(gpa: Allocator, arena: Allocator, args: []const []const u8) !void {
         }
     }
 
+    if (color == .auto and @import("aosc.zig").getEnvKind() == .autobuild) color = .off;
+
     const work_around_btrfs_bug = native_os == .linux and
         EnvVar.ZIG_BTRFS_WORKAROUND.isSet();
     const root_prog_node = std.Progress.start(.{
@@ -5536,6 +5544,7 @@ fn jitCmd(
     dev.check(.jit_command);
 
     const color: Color = .auto;
+    if (color == .auto and @import("aosc.zig").getEnvKind() == .autobuild) color = .off;
     const root_prog_node = if (options.progress_node) |node| node else std.Progress.start(.{
         .disable_printing = (color == .off),
     });
