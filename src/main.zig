@@ -213,6 +213,8 @@ pub fn main(init: std.process.Init.Minimal) anyerror!void {
     defer arena_instance.deinit();
     const arena = arena_instance.allocator();
 
+    @import("aosc.zig").init(arena, init.environ);
+
     const args = try init.args.toSlice(arena);
 
     if (args.len > 0) crash_report.zig_argv0 = args[0];
@@ -411,6 +413,8 @@ fn mainArgs(
         return cmdDumpZir(arena, io, cmd_args);
     } else if (build_options.enable_debug_extensions and mem.eql(u8, cmd, "llvm-ints")) {
         return cmdDumpLlvmInts(gpa, arena, io, cmd_args);
+    } else if (mem.eql(u8, cmd, "aosc")) {
+        return @import("aosc.zig").cmd(arena, io, cmd_args);
     } else {
         std.log.info("{s}", .{usage});
         fatal("unknown command: {s}", .{args[1]});
@@ -1042,6 +1046,8 @@ fn buildOutputType(
     else
         .auto;
     var n_jobs: ?u32 = null;
+
+    if (color == .auto and @import("aosc.zig").getEnvKind() == .autobuild) color = .off;
 
     switch (arg_mode) {
         .build, .translate_c, .zig_test, .zig_test_obj, .run => {
@@ -4081,8 +4087,8 @@ fn createModule(
 
         // Trigger native system library path detection if necessary.
         if (create_module.sysroot == null and
-            resolved_target.is_native_os and resolved_target.is_native_abi and
-            create_module.want_native_include_dirs)
+            ((resolved_target.is_native_os and resolved_target.is_native_abi and
+                create_module.want_native_include_dirs) or @import("aosc.zig").alwaysWantNativeDirs()))
         {
             var paths = std.zig.system.NativePaths.detect(arena, io, target, environ_map) catch |err|
                 fatal("unable to detect native system paths: {t}", .{err});
